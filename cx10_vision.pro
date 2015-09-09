@@ -6,19 +6,41 @@
 
 QT       += core gui gamecontroller serialport
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
-TARGET = Joy2CX10
+TARGET = cx10_vision
 TEMPLATE = app
+
+INCLUDEPATH += /usr/local/include/opencv/
+LIBS += -L/usr/local/lib
+LIBS += -lopencv_core
+LIBS += -lopencv_imgproc
+LIBS += -lopencv_highgui
+LIBS += -lopencv_ml
+LIBS += -lopencv_video
+LIBS += -lopencv_features2d
+LIBS += -lopencv_calib3d
+LIBS += -lopencv_objdetect
+LIBS += -lopencv_contrib
+LIBS += -lopencv_legacy
+LIBS += -lopencv_flann
+LIBS += -lopencv_videoio
+#LIBS += -lopencv_nonfree
 
 
 SOURCES += main.cpp\
         mainwindow.cpp \
     serialcontroller.cpp \
-    recorder.cpp
+    recorder.cpp \
+    visionmodule.cpp \
+    qcustomplot.cpp \
+    altitudeplot.cpp
 
 HEADERS  += mainwindow.h \
     serialcontroller.h \
-    recorder.h
+    recorder.h \
+    visionmodule.h \
+    qcustomplot.h \
+    altitudeplot.h
 
 FORMS    += mainwindow.ui

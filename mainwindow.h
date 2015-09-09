@@ -4,8 +4,11 @@
 #include <QMainWindow>
 #include <QtGameController/QGameController>
 #include <QTimer>
+#include <QSettings>
 #include "serialcontroller.h"
 #include "recorder.h"
+#include "visionmodule.h"
+#include "altitudeplot.h"
 
 enum Mode {KILL, ACTIVE};
 
@@ -24,11 +27,15 @@ public:
 public slots:
     void serialConnected(QString deviceName);
     void pwmPlayback(uint axis, uint value);
+    void handleVisionData(double altitude, double direction, double offset);
 
 private:
     Ui::MainWindow *ui;
+    QSettings *settings;
     QGameController *gameController;
     Recorder *recorder;
+    VisionModule *vision;
+    AltitudePlot *altitudePlot;
     QTimer *timer;
     char axis_moved;
     Mode mode;
@@ -48,6 +55,14 @@ private slots:
     void on_recordStartButton_clicked();
     void on_recordStopButton_clicked();
     void on_playbackStartButton_clicked();
+    void on_Hmin_valueChanged(int arg1);
+    void on_Hmax_valueChanged(int arg1);
+    void on_Smin_valueChanged(int arg1);
+    void on_Smax_valueChanged(int arg1);
+    void on_Vmin_valueChanged(int arg1);
+    void on_Vmax_valueChanged(int arg1);
+    void on_visionPause_clicked();
+    void on_visionContinue_clicked();
 };
 
 #endif // MAINWINDOW_H
