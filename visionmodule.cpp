@@ -1,17 +1,30 @@
 #include "visionmodule.h"
 #include <QDebug>
+#include <QDateTime>
+
+// 1 for playback, 0 for live recording and save to file
+#define VISION_PLAYBACK 0
 
 VisionModule::VisionModule(QObject *parent) : QObject(parent)
 {
     timer = new QTimer();
     connect(timer, SIGNAL(timeout()), this, SLOT(processNextFrame()));
     timer->setInterval(40);
-    cap = VideoCapture("/home/bart/Documents/IMAV2015/hover_2.mp4");
-    //cap = VideoCapture(0);
+#if VISION_PLAYBACK
+    cap = VideoCapture("/home/bart/Documents/IMAV2015/recordings/rec-20150910-162154664.mpg");
+    timer->start();
+#else
+    cap = VideoCapture(1);
+    cap >> currentFrame;
+    const QDateTime now = QDateTime::currentDateTime();
+    const QString timestamp = now.toString(QLatin1String("yyyyMMdd-hhmmsszzz"));
+    const QString filename = QString::fromLatin1("/home/bart/Documents/IMAV2015/recordings/rec-%1.mpg").arg(timestamp);
+    video_writer = VideoWriter(filename.toStdString(),CV_FOURCC('H','2','6','4'), 25.0, currentFrame.size());
+#endif
     cap.set(CV_CAP_PROP_BUFFERSIZE, 0);
     namedWindow("lol", 1);
     moveWindow("lol", 800, 200);
-    timer->start();
+    lowerRange = Scalar(14,0,0);
 }
 
 VisionModule::~VisionModule()
@@ -29,20 +42,39 @@ void VisionModule::pause()
     timer->stop();
 }
 
-void VisionModule::parameterUpdate(Scalar lower, Scalar upper)
+void VisionModule::parameterUpdate(int Hmin, int Smin, int Vmin, int Hmax, int Smax, int Vmax)
 {
-    lowerRange = lower;
-    upperRange = upper;
+    lowerRange.val[0] = Hmin;
+    lowerRange.val[1] = Smin;
+    lowerRange.val[2] = Vmin;
+    upperRange.val[0] = Hmax;
+    upperRange.val[1] = Smax;
+    upperRange.val[2] = Vmax;
+
     processFrame();
 }
 
 void VisionModule::processNextFrame()
 {
     cap >> currentFrame;
+
+    // If no data, stop here
+    if (currentFrame.empty()) return;
+
+    // Camera is upside-down, rotate it 180deg
+    flip(currentFrame, currentFrame, -1);
+
+#if !VISION_PLAYBACK
+    video_writer << currentFrame;
+#endif
+    // Cut outer boundaries (they are noisy
+    Rect roi = Rect(20, 20, currentFrame.cols-40, currentFrame.rows-40);
+    currentFrame = currentFrame(roi);
+
     processFrame();
 }
 
-double VisionModule::getOrientation(vector<Point> &pts, Mat &img)
+double VisionModule::getOrientation(vector<Point> &pts)
 {
     //Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
     //Construct a buffer used by the pca analysis
@@ -85,15 +117,21 @@ void VisionModule::processFrame()
     // Return if there is no new frame (movie for example)
     if (currentFrame.empty()) return;
 
-    // Cut outer boundaries (they are noisy
-    Rect roi = Rect(20, 20, currentFrame.cols-40, currentFrame.rows-40);
-    currentFrame = currentFrame(roi);
+    Mat displayFrame;
+    currentFrame.copyTo(displayFrame);
 
     // Filter line/rope with color range (result is a binary image)
     Mat hsv_image;
     Mat range(currentFrame.rows, currentFrame.cols, CV_8U);
     cvtColor(currentFrame, hsv_image, COLOR_BGR2HSV);
     inRange(hsv_image, lowerRange, upperRange, range);
+
+    // Erode / Delute (noise filter)
+    int dilation_size = 5;
+    Mat element = getStructuringElement( MORPH_RECT,
+                                          Size( 2*dilation_size + 1, 2*dilation_size+1 ),
+                                          Point( dilation_size, dilation_size ) );
+    dilate(range, range, element);
 
     // Find the contours
     vector<vector<Point> > contours;
@@ -114,10 +152,34 @@ void VisionModule::processFrame()
     }
 
     // Continue only if there is at least one region identified
-    if (largestArea > 0) {
-        double angle = getOrientation(contours[largestIdx], range);
-        qDebug() << angle;
+    if (largestArea < 10000) {
+        emit dataReady(0, 0, 0);
+        imshow("lol", currentFrame);
+        return;
+
     }
 
-    imshow("lol", currentFrame);
+
+    // Retreive angle from the largest contour using PCA
+    double angle = getOrientation(contours[largestIdx]);
+
+    // Determine length of the rope from minimum rectangle around contour
+    RotatedRect minRect = minAreaRect( Mat(contours[largestIdx]));
+    Point2f rect_points[4]; minRect.points( rect_points );
+    double length1 = norm(rect_points[0] - rect_points[1]);
+    double length2 = norm(rect_points[1] - rect_points[2]);
+    double length = length1;
+    if(length2>length1) length = length2;
+
+    // Calculate height (no units)
+    double width = largestArea/length;
+    double height = 1000/width;
+
+    // Draw the largest contour on the original frame and show it
+    Scalar color = Scalar(128, 128, 128);
+    drawContours( displayFrame, contours, largestIdx, color, 2, 8, hierarchy, 0, Point() );
+
+    // Emit calculated parameters
+    emit dataReady(height, 0, 0);
+    imshow("lol", displayFrame);
 }

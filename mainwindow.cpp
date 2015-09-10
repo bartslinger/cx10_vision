@@ -2,21 +2,14 @@
 #include "ui_mainwindow.h"
 #include <QtDebug>
 
+#define MAX_PWM 250
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     mode(ACTIVE)
 {
     ui->setupUi(this);
-
-    settings = new QSettings("settings.ini", QSettings::NativeFormat);
-    // Load settings
-    ui->Hmin->setValue(settings->value("Hmin").toInt());
-    ui->Hmax->setValue(settings->value("Hmax").toInt());
-    ui->Smin->setValue(settings->value("Smin").toInt());
-    ui->Smax->setValue(settings->value("Smax").toInt());
-    ui->Vmin->setValue(settings->value("Vmin").toInt());
-    ui->Vmax->setValue(settings->value("Vmax").toInt());
 
     gameController = new QGameController(0, this);
     if (gameController->isValid()) {
@@ -38,9 +31,27 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(recorder, SIGNAL(pwmPlayback(uint,uint)), this, SLOT(pwmPlayback(uint,uint)));
 
     // Setup vision module
+    altitudePlot = new AltitudePlot(this, ui->altitudePlot);
     vision = new VisionModule();
 
-    altitudePlot = new AltitudePlot(this, ui->altitudePlot);
+
+    // Setup altitude controller
+    altitudeController = new PDController;
+
+    settings = new QSettings("settings.ini", QSettings::NativeFormat);
+    // Load settings
+    ui->Hmin->setValue(settings->value("Hmin").toInt());
+    ui->Hmax->setValue(settings->value("Hmax").toInt());
+    ui->Smin->setValue(settings->value("Smin").toInt());
+    ui->Smax->setValue(settings->value("Smax").toInt());
+    ui->Vmin->setValue(settings->value("Vmin").toInt());
+    ui->Vmax->setValue(settings->value("Vmax").toInt());
+    ui->altP->setValue(settings->value("altPgain").toDouble());
+    ui->altD->setValue(settings->value("altDgain").toDouble());
+    ui->altNeutral->setValue(settings->value("altNeutral").toInt());
+    ui->altTarget->setValue(settings->value("altTarget").toDouble());
+
+    connect(vision, SIGNAL(dataReady(double,double,double)), this, SLOT(handleVisionData(double,double,double)));
 
 }
 
@@ -53,6 +64,7 @@ MainWindow::~MainWindow()
     delete recorder;
     delete vision;
     delete altitudePlot;
+    delete altitudeController;
 }
 
 void MainWindow::serialConnected(QString deviceName)
@@ -81,7 +93,31 @@ void MainWindow::pwmPlayback(uint axis, uint value)
 
 void MainWindow::handleVisionData(double altitude, double direction, double offset)
 {
-    qDebug() << "Altitude: " << altitude;
+    double command = ui->altNeutral->value() + altitudeController->propagate(ui->altTarget->value(), altitude);
+    int pwm;
+    if (command > MAX_PWM){
+        pwm = MAX_PWM;
+    }
+    else if(command < 0){
+        pwm = 0;
+    }
+    else {
+        pwm = command;
+    }
+    altitudePlot->addDataPoint(altitude, command);
+    if (ui->altControl->isChecked() && altitude > 0) {
+        int pwm;
+        if (command > MAX_PWM){
+            pwm = MAX_PWM;
+        }
+        else if(command < 0){
+            pwm = 0;
+        }
+        else {
+            pwm = command;
+        }
+        serialController->setThrust(pwm);
+    }
 }
 
 void MainWindow::kill()
@@ -96,26 +132,37 @@ void MainWindow::unkill()
     this->mode = ACTIVE;
 }
 
+void MainWindow::sendHSVValues()
+{
+    vision->parameterUpdate(ui->Hmin->value(), ui->Smin->value(), ui->Vmin->value(), ui->Hmax->value(), ui->Smax->value(), ui->Vmax->value());
+}
+
 void MainWindow::handleAxisEvent(QGameControllerAxisEvent *event)
 {
 
-    float value = (1-event->value())*127.5;
+    float value = (1-event->value())*MAX_PWM/2;
     int pwm = value  / 1;
-    float inverseValue = (1+event->value())*127.5;
+    float inverseValue = (1+event->value())*MAX_PWM/2;
     int inversepwm = inverseValue / 1;
-
 
     // SWITCH TOP LEFT
     if(event->axis() == 3){
         if(event->value() > 0) {
             qDebug() << "Kill";
-            this->kill();
+            ui->altControl->setChecked(false);
+            //this->kill();
             //serialController->flipPush();
         } else {
-            qDebug() << "Unkill";
-            this->unkill();
+            //qDebug() << "Unkill";
+            //this->unkill();
+            ui->altControl->setChecked(true);
             //serialController->flipRelease();
         }
+    }
+
+    // ROTATING BUTTON
+    if(event->axis() == 4){
+        ui->altP->setValue(event->value()*15);
     }
 
     // Do not process commands if not active
@@ -206,31 +253,37 @@ void MainWindow::on_playbackStartButton_clicked()
 void MainWindow::on_Hmin_valueChanged(int arg1)
 {
     settings->setValue("Hmin", arg1);
+    sendHSVValues();
 }
 
 void MainWindow::on_Hmax_valueChanged(int arg1)
 {
     settings->setValue("Hmax", arg1);
+    sendHSVValues();
 }
 
 void MainWindow::on_Smin_valueChanged(int arg1)
 {
     settings->setValue("Smin", arg1);
+    sendHSVValues();
 }
 
 void MainWindow::on_Smax_valueChanged(int arg1)
 {
     settings->setValue("Smax", arg1);
+    sendHSVValues();
 }
 
 void MainWindow::on_Vmin_valueChanged(int arg1)
 {
     settings->setValue("Vmin", arg1);
+    sendHSVValues();
 }
 
 void MainWindow::on_Vmax_valueChanged(int arg1)
 {
     settings->setValue("Vmax", arg1);
+    sendHSVValues();
 }
 
 void MainWindow::on_visionPause_clicked()
@@ -241,4 +294,39 @@ void MainWindow::on_visionPause_clicked()
 void MainWindow::on_visionContinue_clicked()
 {
     vision->start();
+}
+
+void MainWindow::on_altP_valueChanged(double arg1)
+{
+    settings->setValue("altPgain", arg1);
+    altitudeController->setGainP(arg1);
+}
+
+void MainWindow::on_altD_valueChanged(double arg1)
+{
+    settings->setValue("altDgain", arg1);
+    altitudeController->setGainD(arg1);
+}
+
+void MainWindow::on_altControl_stateChanged(int arg1)
+{
+    switch (arg1) {
+    case Qt::Checked:
+        break;
+    case Qt::Unchecked:
+    default:
+        serialController->setThrust(0);
+        break;
+    }
+}
+
+void MainWindow::on_altTarget_valueChanged(double arg1)
+{
+    altitudePlot->setTarget(arg1);
+    settings->setValue("altTarget", arg1);
+}
+
+void MainWindow::on_altNeutral_valueChanged(int arg1)
+{
+    settings->setValue("altNeutral", arg1);
 }

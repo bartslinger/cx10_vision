@@ -19,18 +19,19 @@ public:
 
     void start();
     void pause();
-    void parameterUpdate(Scalar lower, Scalar upper);
+    void parameterUpdate(int Hmin, int Smin, int Vmin, int Hmax, int Smax, int Vmax);
 
 
 private:
     QTimer *timer;
     VideoCapture cap;
     Mat currentFrame;
+    VideoWriter video_writer;
 
     Scalar lowerRange;
     Scalar upperRange;
 
-    double getOrientation(vector<Point> &pts, Mat &img);
+    double getOrientation(vector<Point> &pts);
     void processFrame();
 
 

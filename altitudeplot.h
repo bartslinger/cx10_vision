@@ -8,10 +8,17 @@ class AltitudePlot : public QObject
 {
     Q_OBJECT
 public:
-    explicit AltitudePlot(QObject *parent = 0, QCustomPlot *plot = NULL);
+    explicit AltitudePlot(QObject *parent = 0, QCustomPlot *plot_ref = NULL);
     ~AltitudePlot();
 
+    void addDataPoint(double value, double control);
+    void setTarget(double new_target);
+
     QCustomPlot *plot;
+
+private:
+    int counter;
+    double target;
 
 signals:
 

@@ -9,6 +9,7 @@
 #include "recorder.h"
 #include "visionmodule.h"
 #include "altitudeplot.h"
+#include "pdcontroller.h"
 
 enum Mode {KILL, ACTIVE};
 
@@ -35,6 +36,7 @@ private:
     QGameController *gameController;
     Recorder *recorder;
     VisionModule *vision;
+    PDController *altitudeController;
     AltitudePlot *altitudePlot;
     QTimer *timer;
     char axis_moved;
@@ -44,6 +46,7 @@ private:
 
     void kill();
     void unkill();
+    void sendHSVValues();
 
 private slots:
     void handleAxisEvent(QGameControllerAxisEvent *event);
@@ -63,6 +66,11 @@ private slots:
     void on_Vmax_valueChanged(int arg1);
     void on_visionPause_clicked();
     void on_visionContinue_clicked();
+    void on_altP_valueChanged(double arg1);
+    void on_altD_valueChanged(double arg1);
+    void on_altControl_stateChanged(int arg1);
+    void on_altTarget_valueChanged(double arg1);
+    void on_altNeutral_valueChanged(int arg1);
 };
 
 #endif // MAINWINDOW_H

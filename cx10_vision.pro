@@ -34,13 +34,17 @@ SOURCES += main.cpp\
     recorder.cpp \
     visionmodule.cpp \
     qcustomplot.cpp \
-    altitudeplot.cpp
+    altitudeplot.cpp \
+    datalogger.cpp \
+    pdcontroller.cpp
 
 HEADERS  += mainwindow.h \
     serialcontroller.h \
     recorder.h \
     visionmodule.h \
     qcustomplot.h \
-    altitudeplot.h
+    altitudeplot.h \
+    datalogger.h \
+    pdcontroller.h
 
 FORMS    += mainwindow.ui

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>603</width>
-    <height>767</height>
+    <height>832</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -351,6 +351,129 @@
     </property>
     <property name="text">
      <string>Continue</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>660</y>
+      <width>16</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>P</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>680</y>
+      <width>16</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>D</string>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="altP">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>650</y>
+      <width>62</width>
+      <height>27</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="altD">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>680</y>
+      <width>62</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <double>0.000000000000000</double>
+    </property>
+    <property name="maximum">
+     <double>1000.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>1.000000000000000</double>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="altControl">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>620</y>
+      <width>90</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Alt Control</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="altNeutral">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>740</y>
+      <width>44</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <number>250</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>750</y>
+      <width>59</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Neutral</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>710</y>
+      <width>59</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Target</string>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="altTarget">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>710</y>
+      <width>62</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <double>-100.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.100000000000000</double>
     </property>
    </widget>
   </widget>
