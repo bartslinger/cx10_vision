@@ -11,7 +11,7 @@ VisionModule::VisionModule(QObject *parent) : QObject(parent)
     connect(timer, SIGNAL(timeout()), this, SLOT(processNextFrame()));
     timer->setInterval(40);
 #if VISION_PLAYBACK
-    cap = VideoCapture("/home/bart/Documents/IMAV2015/recordings/rec-20150910-162154664.mpg");
+    cap = VideoCapture("/home/bart/Documents/IMAV2015/arena_drone.mp4");
     timer->start();
 #else
     cap = VideoCapture(1);
@@ -23,7 +23,7 @@ VisionModule::VisionModule(QObject *parent) : QObject(parent)
 #endif
     cap.set(CV_CAP_PROP_BUFFERSIZE, 0);
     namedWindow("lol", 1);
-    moveWindow("lol", 800, 200);
+    moveWindow("lol", 1200, 200);
     lowerRange = Scalar(14,0,0);
 }
 
@@ -160,8 +160,8 @@ void VisionModule::processFrame()
     }
 
 
-    // Retreive angle from the largest contour using PCA
-    double angle = getOrientation(contours[largestIdx]);
+    // Retreive angle from the largest contour using PCA, in degrees. Forward = 0deg
+    double angle = getOrientation(contours[largestIdx]) * 180 / M_PI - 90;
 
     // Determine length of the rope from minimum rectangle around contour
     RotatedRect minRect = minAreaRect( Mat(contours[largestIdx]));
@@ -180,6 +180,6 @@ void VisionModule::processFrame()
     drawContours( displayFrame, contours, largestIdx, color, 2, 8, hierarchy, 0, Point() );
 
     // Emit calculated parameters
-    emit dataReady(height, 0, 0);
+    emit dataReady(height, angle, 0);
     imshow("lol", displayFrame);
 }

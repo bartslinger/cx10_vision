@@ -9,7 +9,8 @@
 #include "recorder.h"
 #include "visionmodule.h"
 #include "altitudeplot.h"
-#include "pdcontroller.h"
+#include "pidcontroller.h"
+#include "binarycontroller.h"
 
 enum Mode {KILL, ACTIVE};
 
@@ -36,7 +37,9 @@ private:
     QGameController *gameController;
     Recorder *recorder;
     VisionModule *vision;
-    PDController *altitudeController;
+    PIDController *altitudeController;
+    BinaryController *altBinaryController;
+    PIDController *dirController;
     AltitudePlot *altitudePlot;
     QTimer *timer;
     char axis_moved;
@@ -71,6 +74,12 @@ private slots:
     void on_altControl_stateChanged(int arg1);
     void on_altTarget_valueChanged(double arg1);
     void on_altNeutral_valueChanged(int arg1);
+    void on_altI_valueChanged(double arg1);
+    void on_altBinUp_valueChanged(int arg1);
+    void on_altBinDown_valueChanged(int arg1);
+    void on_altBinControl_stateChanged(int arg1);
+    void on_dirP_valueChanged(double arg1);
+    void on_playbackCorrection_valueChanged(int arg1);
 };
 
 #endif // MAINWINDOW_H

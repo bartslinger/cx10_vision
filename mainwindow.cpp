@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QtDebug>
 
-#define MAX_PWM 250
+#define MAX_PWM 255
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -36,7 +36,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     // Setup altitude controller
-    altitudeController = new PDController;
+    altitudeController = new PIDController;
+    altBinaryController = new BinaryController;
+
+    // Yaw controller (Only using P gain)
+    dirController = new PIDController;
 
     settings = new QSettings("settings.ini", QSettings::NativeFormat);
     // Load settings
@@ -47,9 +51,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->Vmin->setValue(settings->value("Vmin").toInt());
     ui->Vmax->setValue(settings->value("Vmax").toInt());
     ui->altP->setValue(settings->value("altPgain").toDouble());
+    ui->altI->setValue(settings->value("altIgain").toDouble());
     ui->altD->setValue(settings->value("altDgain").toDouble());
     ui->altNeutral->setValue(settings->value("altNeutral").toInt());
     ui->altTarget->setValue(settings->value("altTarget").toDouble());
+    ui->altBinUp->setValue(settings->value("altBinUp").toInt());
+    ui->altBinDown->setValue(settings->value("altBinDown").toInt());
+    ui->dirP->setValue(settings->value("dirPgain").toDouble());
+    ui->playbackCorrection->setValue(settings->value("playbackCorrection").toInt());
 
     connect(vision, SIGNAL(dataReady(double,double,double)), this, SLOT(handleVisionData(double,double,double)));
 
@@ -65,6 +74,8 @@ MainWindow::~MainWindow()
     delete vision;
     delete altitudePlot;
     delete altitudeController;
+    delete altBinaryController;
+    delete dirController;
 }
 
 void MainWindow::serialConnected(QString deviceName)
@@ -75,9 +86,19 @@ void MainWindow::serialConnected(QString deviceName)
 
 void MainWindow::pwmPlayback(uint axis, uint value)
 {
+    int thrust_corrected = ui->playbackCorrection->value() + value;
     switch(axis) {
     case 0:
-        serialController->setThrust(value);
+
+        if (thrust_corrected > MAX_PWM) {
+            thrust_corrected = MAX_PWM;
+        }
+
+        if(thrust_corrected < 0) {
+            thrust_corrected = 0;
+        }
+
+        serialController->setThrust(thrust_corrected);
         break;
     case 1:
         serialController->setRudder(value);
@@ -93,29 +114,20 @@ void MainWindow::pwmPlayback(uint axis, uint value)
 
 void MainWindow::handleVisionData(double altitude, double direction, double offset)
 {
-    double command = ui->altNeutral->value() + altitudeController->propagate(ui->altTarget->value(), altitude);
+    double alt_command = altBinaryController->propagate(ui->altTarget->value(), altitude);
+    double yaw_command;
     int pwm;
-    if (command > MAX_PWM){
+    if (alt_command > MAX_PWM){
         pwm = MAX_PWM;
     }
-    else if(command < 0){
+    else if(alt_command < 0){
         pwm = 0;
     }
     else {
-        pwm = command;
+        pwm = alt_command;
     }
-    altitudePlot->addDataPoint(altitude, command);
-    if (ui->altControl->isChecked() && altitude > 0) {
-        int pwm;
-        if (command > MAX_PWM){
-            pwm = MAX_PWM;
-        }
-        else if(command < 0){
-            pwm = 0;
-        }
-        else {
-            pwm = command;
-        }
+    altitudePlot->addDataPoint(altitude, alt_command);
+    if (ui->altBinControl->isChecked() && altitude > 0) {
         serialController->setThrust(pwm);
     }
 }
@@ -149,13 +161,13 @@ void MainWindow::handleAxisEvent(QGameControllerAxisEvent *event)
     if(event->axis() == 3){
         if(event->value() > 0) {
             qDebug() << "Kill";
-            ui->altControl->setChecked(false);
-            //this->kill();
+            //ui->altBinControl->setChecked(false);
+            this->kill();
             //serialController->flipPush();
         } else {
-            //qDebug() << "Unkill";
-            //this->unkill();
-            ui->altControl->setChecked(true);
+            qDebug() << "Unkill";
+            this->unkill();
+            //ui->altBinControl->setChecked(true);
             //serialController->flipRelease();
         }
     }
@@ -312,6 +324,7 @@ void MainWindow::on_altControl_stateChanged(int arg1)
 {
     switch (arg1) {
     case Qt::Checked:
+        altitudeController->resetIntegral();
         break;
     case Qt::Unchecked:
     default:
@@ -329,4 +342,45 @@ void MainWindow::on_altTarget_valueChanged(double arg1)
 void MainWindow::on_altNeutral_valueChanged(int arg1)
 {
     settings->setValue("altNeutral", arg1);
+}
+
+void MainWindow::on_altI_valueChanged(double arg1)
+{
+    altitudeController->setGainI(arg1);
+    settings->setValue("altIgain", arg1);
+}
+
+void MainWindow::on_altBinUp_valueChanged(int arg1)
+{
+    altBinaryController->setUpValue(arg1);
+    settings->setValue("altBinUp", arg1);
+}
+
+void MainWindow::on_altBinDown_valueChanged(int arg1)
+{
+    altBinaryController->setDownValue(arg1);
+    settings->setValue("altBinDown", arg1);
+}
+
+void MainWindow::on_altBinControl_stateChanged(int arg1)
+{
+    switch(arg1){
+    case Qt::Checked:
+        break;
+    case Qt::Unchecked:
+    default:
+        serialController->setThrust(0);
+        break;
+    }
+}
+
+void MainWindow::on_dirP_valueChanged(double arg1)
+{
+    dirController->setGainP(arg1);
+    settings->setValue("dirPgain", arg1);
+}
+
+void MainWindow::on_playbackCorrection_valueChanged(int arg1)
+{
+    settings->setValue("playbackCorrection", arg1);
 }

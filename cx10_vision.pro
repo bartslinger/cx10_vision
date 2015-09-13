@@ -36,7 +36,9 @@ SOURCES += main.cpp\
     qcustomplot.cpp \
     altitudeplot.cpp \
     datalogger.cpp \
-    pdcontroller.cpp
+    pdcontroller.cpp \
+    pidcontroller.cpp \
+    binarycontroller.cpp
 
 HEADERS  += mainwindow.h \
     serialcontroller.h \
@@ -45,6 +47,8 @@ HEADERS  += mainwindow.h \
     qcustomplot.h \
     altitudeplot.h \
     datalogger.h \
-    pdcontroller.h
+    pdcontroller.h \
+    pidcontroller.h \
+    binarycontroller.h
 
 FORMS    += mainwindow.ui
