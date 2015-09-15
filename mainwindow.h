@@ -80,6 +80,8 @@ private slots:
     void on_altBinControl_stateChanged(int arg1);
     void on_dirP_valueChanged(double arg1);
     void on_playbackCorrection_valueChanged(int arg1);
+    void on_altPlayback1_clicked();
+    void on_altPlayback2_clicked();
 };
 
 #endif // MAINWINDOW_H

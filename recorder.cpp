@@ -45,10 +45,10 @@ void Recorder::stopRecording()
     state = IDLE;
 }
 
-void Recorder::startPlayback()
+void Recorder::startPlayback(QString filename)
 {
     if (!file->isOpen()) {
-        file->setFileName("recording.txt");
+        file->setFileName(filename);
         file->open(QIODevice::ReadWrite | QIODevice::Text);
     }
     filestream.seek(0);

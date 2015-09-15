@@ -167,6 +167,7 @@ void MainWindow::handleAxisEvent(QGameControllerAxisEvent *event)
         } else {
             qDebug() << "Unkill";
             this->unkill();
+            recorder->startPlayback("recording.txt");
             //ui->altBinControl->setChecked(true);
             //serialController->flipRelease();
         }
@@ -259,7 +260,7 @@ void MainWindow::on_recordStopButton_clicked()
 
 void MainWindow::on_playbackStartButton_clicked()
 {
-    recorder->startPlayback();
+    recorder->startPlayback("recording.txt");
 }
 
 void MainWindow::on_Hmin_valueChanged(int arg1)
@@ -383,4 +384,14 @@ void MainWindow::on_dirP_valueChanged(double arg1)
 void MainWindow::on_playbackCorrection_valueChanged(int arg1)
 {
     settings->setValue("playbackCorrection", arg1);
+}
+
+void MainWindow::on_altPlayback1_clicked()
+{
+    recorder->startPlayback("recording_christophe_F_slow.txt");
+}
+
+void MainWindow::on_altPlayback2_clicked()
+{
+    recorder->startPlayback("recording_christophe_F_2.txt");
 }

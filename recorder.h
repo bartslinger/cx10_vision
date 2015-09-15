@@ -17,7 +17,7 @@ public:
 
     void startRecording();
     void stopRecording();
-    void startPlayback();
+    void startPlayback(QString filename);
     void stopPlayback();
 
     void updateAxis(uint axis, uint value);
