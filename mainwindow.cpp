@@ -21,6 +21,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(timer, SIGNAL(timeout()), gameController, SLOT(readGameController()));
     timer->start();
 
+
+
+
     // Set up the serial controller (Arduino)
     serialController = new SerialController();
     connect(serialController, SIGNAL(controllerConnected(QString)), this, SLOT(serialConnected(QString)));
@@ -59,6 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->altBinDown->setValue(settings->value("altBinDown").toInt());
     ui->dirP->setValue(settings->value("dirPgain").toDouble());
     ui->playbackCorrection->setValue(settings->value("playbackCorrection").toInt());
+    ui->morePitchSpinBox->setValue(settings->value("initialPitch").toInt());
 
     connect(vision, SIGNAL(dataReady(double,double,double)), this, SLOT(handleVisionData(double,double,double)));
 
@@ -101,7 +105,13 @@ void MainWindow::pwmPlayback(uint axis, uint value)
         serialController->setThrust(thrust_corrected);
         break;
     case 1:
-        serialController->setRudder(value);
+        if (ui->flipYawCheckBox->isChecked()) {
+            int new_val = value - MAX_PWM/2;
+            new_val = -new_val + MAX_PWM/2;
+            serialController->setRudder(bound(new_val, 0, MAX_PWM));
+        } else {
+            serialController->setRudder(value);
+        }
         break;
     case 2:
         serialController->setRoll(value);
@@ -149,6 +159,17 @@ void MainWindow::sendHSVValues()
     vision->parameterUpdate(ui->Hmin->value(), ui->Smin->value(), ui->Vmin->value(), ui->Hmax->value(), ui->Smax->value(), ui->Vmax->value());
 }
 
+unsigned int MainWindow::bound(int value, int lower, int upper)
+{
+    if (value < lower) {
+        return lower;
+    }
+    if (value > upper) {
+        return upper;
+    }
+    return value;
+}
+
 void MainWindow::handleAxisEvent(QGameControllerAxisEvent *event)
 {
 
@@ -164,10 +185,12 @@ void MainWindow::handleAxisEvent(QGameControllerAxisEvent *event)
             //ui->altBinControl->setChecked(false);
             this->kill();
             //serialController->flipPush();
+            //serialController->setPitch(0);
         } else {
             qDebug() << "Unkill";
+            //serialController->flipRelease();
             this->unkill();
-            recorder->startPlayback("recording.txt");
+            //recorder->startPlayback("recording.txt");
             //ui->altBinControl->setChecked(true);
             //serialController->flipRelease();
         }
@@ -226,6 +249,11 @@ void MainWindow::handleAxisEvent(QGameControllerAxisEvent *event)
 void MainWindow::handleButtonEvent(QGameControllerButtonEvent *event)
 {
     delete event;
+}
+
+void MainWindow::initiateFlip()
+{
+    // Called 10 seconds after button was pushed
 }
 
 void MainWindow::on_onButton_clicked()
@@ -394,4 +422,10 @@ void MainWindow::on_altPlayback1_clicked()
 void MainWindow::on_altPlayback2_clicked()
 {
     recorder->startPlayback("recording_christophe_F_2.txt");
+}
+
+void MainWindow::on_morePitchSpinBox_valueChanged(int arg1)
+{
+    settings->setValue("initialPitch", arg1);
+    recorder->setPitch(arg1);
 }

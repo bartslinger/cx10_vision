@@ -42,6 +42,7 @@ private:
     PIDController *dirController;
     AltitudePlot *altitudePlot;
     QTimer *timer;
+    QTimer *flipTimer;
     char axis_moved;
     Mode mode;
 
@@ -50,10 +51,12 @@ private:
     void kill();
     void unkill();
     void sendHSVValues();
+    unsigned int bound(int value, int lower, int upper);
 
 private slots:
     void handleAxisEvent(QGameControllerAxisEvent *event);
     void handleButtonEvent(QGameControllerButtonEvent *event);
+    void initiateFlip();
     void on_onButton_clicked();
     void on_offButton_clicked();
     void on_pushButton_2_clicked();
@@ -82,6 +85,7 @@ private slots:
     void on_playbackCorrection_valueChanged(int arg1);
     void on_altPlayback1_clicked();
     void on_altPlayback2_clicked();
+    void on_morePitchSpinBox_valueChanged(int arg1);
 };
 
 #endif // MAINWINDOW_H

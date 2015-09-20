@@ -62,6 +62,11 @@ void Recorder::stopPlayback()
 
 }
 
+void Recorder::setPitch(int pitch_correction)
+{
+    pitch_corr = pitch_correction;
+}
+
 void Recorder::updateAxis(uint axis, uint value)
 {
     axes[axis] = value;
@@ -83,7 +88,11 @@ void Recorder::timerSlot()
             emit(pwmPlayback(0,list[1].toUInt()));
             emit(pwmPlayback(1,list[2].toUInt()));
             emit(pwmPlayback(2,list[3].toUInt()));
-            emit(pwmPlayback(3,list[4].toUInt()));
+            if (list[1].toUInt() != 127) {
+                emit(pwmPlayback(3,list[4].toUInt()-pitch_corr));
+            } else {
+                emit(pwmPlayback(3,list[4].toUInt()));
+            }
         }
         else {
             qDebug() << "END";

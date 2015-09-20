@@ -20,6 +20,8 @@ public:
     void startPlayback(QString filename);
     void stopPlayback();
 
+    void setPitch(int pitch_correction);
+
     void updateAxis(uint axis, uint value);
 
 
@@ -30,6 +32,8 @@ private:
 
     uint axes[4];
     States state;
+
+    int pitch_corr;
 
 signals:
     void pwmPlayback(uint axis, uint value);
